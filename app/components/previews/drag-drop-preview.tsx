@@ -69,6 +69,18 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
     setDraggedItem(null)
   }
 
+  const handleDoubleClick = (e: React.MouseEvent, itemId: string) => {
+    e.preventDefault()
+    // Prevent double click if results are shown
+    if (showResults) return
+
+    setDroppedItems((prev) => {
+      const newDroppedItems = { ...prev }
+      delete newDroppedItems[itemId]
+      return newDroppedItems
+    })
+  }
+
   const checkAnswers = () => {
     setShowResults(true)
   }
@@ -88,8 +100,8 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
       const box = content.boxes?.find((b) => b.id === droppedTarget)
       const item = content.items.find((i) => i.id === itemId)
       // Support both single correctAnswer (backward compatibility) and multiple correctAnswers
-      if (box?.correctAnswers && Array.isArray(box.correctAnswers)) {
-        return box.correctAnswers.includes(item?.text || "")
+      if (box?.correctAnswer && Array.isArray(box.correctAnswer)) {
+        return box.correctAnswer.includes(item?.text || "")
       } else {
         // Fallback to single answer for backward compatibility
         return box?.correctAnswer === item?.text
@@ -128,6 +140,7 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
                             : "bg-red-100 text-red-800"
                           : ""
                       }`}
+                      onDoubleClick={(e) => handleDoubleClick(e, item.id)}
                     >
                       {item.text}
                       {showResults &&
