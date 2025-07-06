@@ -87,7 +87,24 @@ export function FillBlanksPreview({ content }: FillBlanksPreviewProps) {
     // Add to the new blank
     newDroppedInBlanks[blankId] = draggedOption
     setDroppedInBlanks(newDroppedInBlanks)
+    handleAnswerChange(blankId, draggedOption)
     setDraggedOption(null)
+  }
+
+  const handleDoubleClickBlank = (e: React.MouseEvent, blankId: string) => {
+    if (showResults) return
+    e.preventDefault()
+    // Clear the answer for this blank
+    setAnswers((prev) => ({
+      ...prev,
+      [blankId]: "",
+    }))
+    // Remove from dropped options if it was dragged
+    setDroppedInBlanks((prev) => {
+      const newDropped = { ...prev }
+      delete newDropped[blankId]
+      return newDropped
+    })
   }
 
   const isCorrect = (blankId: string) => {
@@ -108,7 +125,7 @@ export function FillBlanksPreview({ content }: FillBlanksPreviewProps) {
 
     // Replace underscores with input fields or drop zones
     const parts = questionText.split(/_{3,}/)
-
+    console.log('parts:', parts, 'blanks:', blanks);
     return (
       <div className="space-y-4">
         <div className="text-lg leading-relaxed">
@@ -122,18 +139,19 @@ export function FillBlanksPreview({ content }: FillBlanksPreviewProps) {
                     <div
                       className={`inline-flex items-center justify-center min-w-32 h-10 px-3 border-2 border-dashed rounded ${
                         showResults
-                          ? isCorrect(blanks[blankIndex]?.id ?? "")
+                          ? isCorrect(blanks[index]?.id ?? "")
                             ? "border-green-500 bg-green-50"
                             : "border-red-500 bg-red-50"
                           : "border-gray-300 bg-gray-50 hover:border-blue-400"
                       } ${showResults ? "" : "cursor-pointer"}`}
                       onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, blanks[blankIndex]?.id ?? "")}
+                      onDrop={(e) => handleDrop(e, blanks[index]?.id ?? "")}
+                      onDoubleClick={(e) => handleDoubleClickBlank(e, blanks[index]?.id ?? "")}
                     >
-                      {droppedInBlanks[blanks[blankIndex]?.id ?? ""] ? (
+                      {droppedInBlanks[blanks[index]?.id ?? ""] ? (
                         <span className="text-sm font-medium">
                           {
-                            content.dragOptions?.find((opt) => opt.id === droppedInBlanks[blanks[blankIndex]?.id ?? ""])
+                            content.dragOptions?.find((opt) => opt.id === droppedInBlanks[blanks[index]?.id ?? ""])
                               ?.text
                           }
                         </span>
@@ -142,7 +160,7 @@ export function FillBlanksPreview({ content }: FillBlanksPreviewProps) {
                       )}
                       {showResults && (
                         <span className="ml-2">
-                          {isCorrect(blanks[blankIndex]?.id ?? "") ? (
+                          {isCorrect(blanks[index]?.id ?? "") ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
                           ) : (
                             <XCircle className="w-4 h-4 text-red-600" />

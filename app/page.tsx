@@ -17,8 +17,74 @@ export interface Question {
   createdAt: Date
 }
 
+const createdQuestion: Question[] = [
+  {
+    "title": "Drag option",
+    "type": "fill-blanks",
+    "content": {
+      "questionText": "Honesty is the best ____. \nThe sun ____ in the east.\nTime and tide ____ for none.\nThe Earth ____ around the sun.\nBe the ____ you want to see.",
+      "blanks": [
+        {
+          "id": "1",
+          "correctAnswer": "policy",
+          "placeholder": ""
+        },
+        {
+          "id": "1751796671494",
+          "correctAnswer": "rises",
+          "placeholder": ""
+        },
+        {
+          "id": "1751796672573",
+          "correctAnswer": "wait",
+          "placeholder": ""
+        },
+        {
+          "id": "1751796672981",
+          "correctAnswer": "revolves",
+          "placeholder": ""
+        },
+        {
+          "id": "1751796675128",
+          "correctAnswer": "change",
+          "placeholder": ""
+        }
+      ],
+      "enableDragDrop": true,
+      "dragOptions": [
+        {
+          "id": "1751796745211",
+          "text": "policy",
+          "isCorrectFor": "1"
+        },
+        {
+          "id": "1751796780154",
+          "text": "rises",
+          "isCorrectFor": "1751796671494"
+        },
+        {
+          "id": "1751796800486",
+          "text": "wait",
+          "isCorrectFor": "1751796672573"
+        },
+        {
+          "id": "1751796808257",
+          "text": "revolves",
+          "isCorrectFor": "1751796672981"
+        },
+        {
+          "id": "1751796814195",
+          "text": "change",
+          "isCorrectFor": "1751796675128"
+        }
+      ]
+    },
+    id: "1",
+    createdAt: new Date("2023-11-01T10:00:00Z")
+  }
+]
 export default function QuestionBuilderApp() {
-  const [questions, setQuestions] = useState<Question[]>([])
+  const [questions, setQuestions] = useState<Question[]>(createdQuestion)
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [activeTab, setActiveTab] = useState("list")
