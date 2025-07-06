@@ -104,6 +104,14 @@ export function MathOperationsBuilder({ content, onChange }: MathOperationsBuild
       let carry = 0
       const places = ["ones", "tens", "hundreds", "thousands"] as const
 
+      // Always add a disabled empty carry box for ones place
+      carryBlanks.push({
+        problemId: problem.id,
+        place: "ones",
+        correctValue: "",
+        operation: "carry",
+      })
+
       for (let i = 0; i < places.length; i++) {
         const place = places[i]
         let digit1 = 0
@@ -128,10 +136,12 @@ export function MathOperationsBuilder({ content, onChange }: MathOperationsBuild
         const newCarry = Math.floor(sum / 10)
 
         // Only add carry blank if there's a carry and we have digits in this place
-        if (newCarry > 0 && (digit1 > 0 || digit2 > 0 || carry > 0)) {
+        // The carry should appear above the NEXT place (where it's going), not the current place
+        if (newCarry > 0 && (digit1 > 0 || digit2 > 0 || carry > 0) && i < places.length - 1) {
+          const nextPlace = places[i + 1]
           carryBlanks.push({
             problemId: problem.id,
-            place,
+            place: nextPlace,
             correctValue: String(newCarry),
             operation: "carry",
           })

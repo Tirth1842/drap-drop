@@ -205,24 +205,32 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
               const carryKey = getCarryKey(problem.id, carryBlank.place)
               const filledValue = carryOverAnswers[carryKey]
               const isCorrect = isCarryCorrect(problem.id, carryBlank.place)
+              const isDisabled = carryBlank.correctValue === "";
 
               return (
                 <div key={index} className="flex flex-col items-center">
                   <div
                     className={`w-10 h-10 border-2 border-dashed rounded flex items-center justify-center text-lg font-mono transition-colors ${
-                      showResults
+                      isDisabled
+                        ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : showResults
                         ? isCorrect
                           ? "border-green-500 bg-green-50 text-green-800"
                           : "border-red-500 bg-red-50 text-red-800"
                         : filledValue
-                          ? "border-blue-500 bg-blue-50 text-blue-800"
-                          : "border-gray-400 bg-gray-50 hover:border-blue-400"
-                    } ${showResults ? "" : "cursor-pointer"}`}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleCarryDrop(e, problem.id, carryBlank.place)}
+                        ? "border-blue-500 bg-blue-50 text-blue-800"
+                        : "border-gray-400 bg-gray-50 hover:border-blue-400 cursor-pointer"
+                    }`}
+                    onDragOver={isDisabled ? undefined : handleDragOver}
+                    onDrop={
+                      isDisabled
+                        ? undefined
+                        : (e) =>
+                            handleCarryDrop(e, problem.id, carryBlank.place)
+                    }
                   >
-                    {filledValue || "_"}
-                    {showResults && filledValue && (
+                    {isDisabled ? "" : filledValue || "_"}
+                    {showResults && filledValue && !isDisabled && (
                       <span className="ml-1">
                         {isCorrect ? (
                           <CheckCircle className="w-3 h-3 text-green-600" />
@@ -232,9 +240,11 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1 capitalize">{carryBlank.place.charAt(0)}</div>
+                  <div className="text-xs text-gray-400 mt-1 capitalize">
+                    {carryBlank.place.charAt(0)}
+                  </div>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
