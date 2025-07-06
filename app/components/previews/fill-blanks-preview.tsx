@@ -172,14 +172,14 @@ export function FillBlanksPreview({ content }: FillBlanksPreviewProps) {
                     // Traditional Typing Mode
                     <>
                       <Input
-                        value={answers[blanks[blankIndex]?.id ?? String(blankIndex)] ?? ""}
+                        value={answers[blanks[index]?.id ?? String(index)] ?? ""}
                         onChange={(e) =>
-                          handleAnswerChange(blanks[blankIndex]?.id ?? String(blankIndex), e.target.value)
+                          handleAnswerChange(blanks[index]?.id ?? String(index), e.target.value)
                         }
-                        placeholder={blanks[blankIndex]?.placeholder ?? "Fill in the blank"}
+                        placeholder={blanks[index]?.placeholder ?? "Fill in the blank"}
                         className={`inline-block w-32 ${
                           showResults
-                            ? isCorrect(blanks[blankIndex]?.id ?? "")
+                            ? isCorrect(blanks[index]?.id ?? "")
                               ? "border-green-500 bg-green-50"
                               : "border-red-500 bg-red-50"
                             : ""
@@ -188,7 +188,7 @@ export function FillBlanksPreview({ content }: FillBlanksPreviewProps) {
                       />
                       {showResults && (
                         <span className="ml-2">
-                          {isCorrect(blanks[blankIndex]?.id ?? "") ? (
+                          {isCorrect(blanks[index]?.id ?? "") ? (
                             <CheckCircle className="w-5 h-5 text-green-600 inline" />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 inline" />
