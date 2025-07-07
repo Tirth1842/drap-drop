@@ -18,11 +18,13 @@ interface DragDropPreviewProps {
       text: string
       category?: string
       correctPosition?: number
+      imageUrl?: string // Optional image URL for items
     }>
     categories?: Array<{
       id: string
       name: string
       color: string
+      image?: string
     }>
     boxes?: Array<{
       id: string
@@ -123,6 +125,12 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
             } ${showResults ? "cursor-not-allowed" : ""}`}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, category.id)}
+            style={{
+              backgroundImage: category.image ? `url(${category.image})` : "none",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
           >
             <CardContent className="p-4">
               <h3 className="font-semibold mb-2">{category.name}</h3>
@@ -143,6 +151,7 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
                       onDoubleClick={(e) => handleDoubleClick(e, item.id)}
                     >
                       {item.text}
+                      {item.imageUrl && <img className="w-8 h-8 object-cover rounded" src={item.imageUrl} alt="" />}
                       {showResults &&
                         (isCorrect(item.id) ? (
                           <CheckCircle className="w-4 h-4 ml-2 inline" />
@@ -175,6 +184,7 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
               onDragStart={(e) => handleDragStart(e, item.id)}
             >
               {item.text}
+              {item.imageUrl && <img className="w-9 h-9 object-cover rounded" src={item.imageUrl} alt="" />}
               {droppedItems[item.id] && (
                 <span className="ml-2 text-xs text-gray-500">
                   (in {content.categories?.find((c) => c.id === droppedItems[item.id])?.name})

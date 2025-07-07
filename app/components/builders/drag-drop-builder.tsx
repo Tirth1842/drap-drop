@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Trash2, GripVertical, ImageIcon } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
@@ -30,6 +30,7 @@ interface DragDropContent {
     id: string
     name: string
     color: string
+    image?: string // Optional background image for categorizatio
   }>
   boxes?: Array<{
     id: string
@@ -104,6 +105,40 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
     setLocalContent((prev) => ({
       ...prev,
       categories: prev.categories?.map((cat) => (cat.id === id ? { ...cat, ...updates } : cat)) || [],
+    }))
+  }
+
+  const handleCategoryImageUpload = (id: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    upload(file)
+      .then((imageUrl) => {
+        updateCategory(id, { image: imageUrl })
+        toast({
+          title: "Upload complete",
+          description: "Image uploaded successfully.",
+        })
+      })
+      .catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+          description: "There was a problem with your upload.",
+        })
+      })
+      .finally(() => {
+        setUploading(false)
+      })
+  }
+
+  const updateCategoryImage = (id: string, imageUrl: string) => {
+    setLocalContent((prev) => ({
+      ...prev,
+      categories: prev.categories?.map((cat) =>
+        cat.id === id ? { ...cat, image: imageUrl } : cat
+      ) || [],
     }))
   }
 
@@ -280,25 +315,69 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {localContent.categories?.map((category) => (
-              <Card key={category.id} className="p-4">
-                <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded ${category.color}`}></div>
-                  <Input
-                    value={category.name}
-                    onChange={(e) => updateCategory(category.id, { name: e.target.value })}
-                    placeholder="Category name"
-                    className="flex-1"
-                  />
-                  <Button variant="ghost" size="sm" onClick={() => removeCategory(category.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </Card>
+          {/* <div className="grid grid-cols-2 md:grid-cols-2 gap-4"> */}
+            <Card className="gap-4 pt-4">
+
+           <CardContent className="space-y-4">
+
+            {localContent.categories?.map((category, index) => (
+               <div key={index} className="space-y-4 p-4 border rounded-lg">
+               <div className="flex gap-2 items-center">
+                 <Input
+                   value={category.name}
+                   onChange={(e) => updateCategory(category.id, {name: e.target.value })}
+                   placeholder={`Category ${index + 1} name`}
+                 />
+                 {(localContent.categories?.length ?? 0) > 1 && (
+                   <Button type="button" 
+                   variant="outline" size="sm" onClick={() => removeCategory(category.id)}>
+                     <Trash2 className="h-4 w-4" />
+                   </Button>
+                 )}
+               </div>
+
+               <div className="space-y-2">
+                 <Label>Background Image (Optional)</Label>
+                 <div className="flex gap-2">
+                   <Input
+                     type="file"
+                     accept="image/*"
+                     onChange={(e) => handleCategoryImageUpload(category.id, e)}
+                     className="hidden"
+                     id={`category-image-upload-${index}`}
+                   />
+                   <Button
+                     type="button"
+                     variant="outline"
+                     onClick={() => document.getElementById(`category-image-upload-${index}`)?.click()}
+                     className="flex items-center gap-2"
+                   >
+                     <ImageIcon className="h-4 w-4" />
+                     {category.image ? "Change Background" : "Add Background"}
+                   </Button>
+                   {category.image && (
+                     <Button type="button" variant="outline" onClick={() => updateCategoryImage(category.id, "")}>
+                       Remove
+                     </Button>
+                   )}
+                 </div>
+                 {category.image && (
+                   <div className="mt-2">
+                     <img
+                       src={category.image || "/placeholder.svg"}
+                       alt="Category background"
+                       className="max-w-32 max-h-32 object-cover rounded border"
+                     />
+                   </div>
+                 )}
+               </div>
+             </div>
+            
             ))}
-          </div>
-        </div>
+           </CardContent>
+            </Card>
+          {/* </div> */}
+        </div> 
       )}
 
       {localContent.dragDropType === "match-boxes" && (
