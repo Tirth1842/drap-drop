@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, Eye, EyeOff } from "lucide-react"
+import { Plus, Trash2, Eye, EyeOff, ImageIcon } from "lucide-react"
+import { upload } from "@/lib/utils"
 
 interface FillBlanksContent {
-  questionText: string
+  questionText: string,
+  questionImage?: string, // Optional image for the question
   blanks: Array<{
     id: string
     correctAnswer: string
@@ -46,6 +48,7 @@ export function FillBlanksBuilder({ content, onChange }: FillBlanksBuilderProps)
     }>
   >([])
   const [enableDragDrop, setEnableDragDrop] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     onChange(localContent)
@@ -183,6 +186,20 @@ export function FillBlanksBuilder({ content, onChange }: FillBlanksBuilderProps)
     )
   }
 
+  // Handle image upload
+  const handleImageUpload = async (file: File) => {
+    setUploading(true)
+    try {
+      const base64Image = await upload(file) // Assuming upload function returns base64 string
+      setLocalContent((prev) => ({ ...prev, questionImage: base64Image }))
+    } catch (error) {
+      console.error("Image upload failed:", error)
+      // Optionally show an error toast or message
+    } finally {
+      setUploading(false)
+    }
+  } 
+
   const expectedBlanks = countBlanksInText()
   const actualBlanks = localContent.blanks.length
 
@@ -207,6 +224,50 @@ export function FillBlanksBuilder({ content, onChange }: FillBlanksBuilderProps)
             rows={4}
             className="font-mono text-sm"
           />
+        
+        <div className="flex flex-col space-y-2">
+          {localContent.questionImage ? (
+            <div className="relative w-32 h-32">
+              <img
+                src={localContent.questionImage}
+                alt="Question Image"
+                className="object-cover w-full h-full rounded-md"
+              />
+              <Button
+               className="absolute top-0 right-0"
+               variant="destructive"
+               size={"icon"}
+                onClick={() => setLocalContent((prev) => ({ ...prev, questionImage: undefined }))}
+               >
+                <Trash2 className="w-4 h-4"></Trash2>
+              </Button>
+            </div>
+          ) : 
+            <Label className="cursor-pointer w-32">
+                   <Input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0]
+                    if (file) {
+                      handleImageUpload(file)
+                    }
+                  }}
+                />
+                {
+                  uploading ? (
+                    "Uploading..."
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed rounded-md">
+                      <ImageIcon className="w-6 h-6 text-gray-500"></ImageIcon>
+                      <p className="text-sm-text-gray-500">Upload Image</p>
+                    </div>
+                  )
+                }
+            </Label>
+          }
+         
+        </div>
 
           <div className="flex items-center justify-between text-sm">
             <p className="text-gray-500">

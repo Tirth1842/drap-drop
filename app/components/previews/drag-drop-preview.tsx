@@ -141,7 +141,7 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
                     <Badge
                       key={item.id}
                       variant="secondary"
-                      className={`block w-full p-2 ${
+                      className={`p-2 transition-all ${
                         showResults
                           ? isCorrect(item.id)
                             ? "bg-green-100 text-green-800"

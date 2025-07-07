@@ -9,7 +9,8 @@ import { CheckCircle, XCircle } from "lucide-react"
 
 interface FillBlanksPreviewProps {
   content: {
-    questionText: string
+    questionText: string,
+    questionImage?: string
     enableDragDrop?: boolean
     dragOptions?: Array<{
       id: string
@@ -128,6 +129,9 @@ export function FillBlanksPreview({ content }: FillBlanksPreviewProps) {
     console.log('parts:', parts, 'blanks:', blanks);
     return (
       <div className="space-y-4">
+          <div>
+            <img src={content.questionImage} alt="" />
+          </div>
         <div className="text-lg leading-relaxed">
           {parts.map((part, index) => (
             <span key={index}>
