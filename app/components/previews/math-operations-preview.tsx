@@ -120,72 +120,128 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
     return `${problemId}-${place}`
   }
 
-  const handleCarryDrop = (e: React.DragEvent, problemId: string, place: string) => {
-    e.preventDefault()
-    if (showResults || !draggedDigit) return
+  const handleCarryDrop = (
+    e: React.DragEvent,
+    problemId: string,
+    place: string
+  ) => {
+    e.preventDefault();
+    if (showResults || !draggedDigit) return;
 
-    const carryKey = getCarryKey(problemId, place)
+    const carryKey = getCarryKey(problemId, place);
+    const currentValue = carryOverAnswers[carryKey] || "";
 
-    // Remove previous digit if carry was already filled
-    const previousDigit = carryOverAnswers[carryKey]
-    if (previousDigit) {
-      setUsedDigits((prev) => ({
+    // Find if this is a borrow operation
+    const carryBlank = (content.carryOverBlanks || []).find(
+      (b) => b.problemId === problemId && b.place === place
+    );
+    const isBorrow = carryBlank?.operation === "borrow";
+
+    // For borrow operations, allow two digits; for carry operations, allow one digit
+    const maxDigits = isBorrow ? 2 : 1;
+
+    if (currentValue.length >= maxDigits) {
+      // If at max capacity, replace the value
+      setCarryOverAnswers((prev) => ({
         ...prev,
-        [previousDigit]: Math.max(0, (prev[previousDigit] || 0) - 1),
-      }))
+        [carryKey]: draggedDigit,
+      }));
+    } else {
+      // Append the digit
+      setCarryOverAnswers((prev) => ({
+        ...prev,
+        [carryKey]: currentValue + draggedDigit,
+      }));
     }
 
-    // Add new digit (allow multiple usage)
-    setCarryOverAnswers((prev) => ({
-      ...prev,
-      [carryKey]: draggedDigit,
-    }))
-
-    setDraggedDigit(null)
-  }
+    setDraggedDigit(null);
+  };
 
   const isCarryCorrect = (problemId: string, place: string) => {
-    const carryBlank = content.carryOverBlanks?.find((b) => b.problemId === problemId && b.place === place)
-    if (!carryBlank) return false
+    const carryBlank = content.carryOverBlanks?.find(
+      (b) => b.problemId === problemId && b.place === place
+    );
+    if (!carryBlank) return false;
 
-    const carryKey = getCarryKey(problemId, place)
-    const filledValue = carryOverAnswers[carryKey]
+    const carryKey = getCarryKey(problemId, place);
+    const isBorrow = carryBlank.operation === "borrow";
 
-    return filledValue === carryBlank.correctValue
-  }
+    if (isBorrow) {
+      // For borrow operations, check if the combined value matches
+      const filledValue = carryOverAnswers[carryKey] || "";
+      return filledValue === carryBlank.correctValue;
+    } else {
+      // For carry operations, check single digit
+      const filledValue = carryOverAnswers[carryKey];
+      return filledValue === carryBlank.correctValue;
+    }
+  };
+
+  const isCarryBoxEnabled = (problemId: string, place: string) => {
+    const placeOrder = ["ones", "tens", "hundreds", "thousands"];
+    const currentIndex = placeOrder.indexOf(place);
+    
+    // Ones place is always enabled (rightmost)
+    if (currentIndex === 0) return true;
+    
+    // Check if all previous places (to the right) are filled or disabled
+    for (let i = 0; i < currentIndex; i++) {
+      const prevPlace = placeOrder[i];
+      const prevCarryBlank = content.carryOverBlanks?.find(
+        (b) => b.problemId === problemId && b.place === prevPlace
+      );
+      
+      if (prevCarryBlank) {
+        // If the previous place is empty disabled (like ones place in addition), skip it
+        if (prevCarryBlank.correctValue === "") {
+          continue;
+        }
+        
+        const prevCarryKey = getCarryKey(problemId, prevPlace);
+        const filledValue = carryOverAnswers[prevCarryKey] || "";
+        
+        // Check if previous place is filled (both for carry and borrow)
+        if (!filledValue) return false;
+      }
+    }
+    
+    return true;
+  };
 
   // Helper function to get the maximum number of digits across all numbers in a problem
   const getMaxDigits = (problem: MathProblem) => {
-    const op1Length = String(problem.operand1).length
-    const op2Length = String(problem.operand2).length
-    const answerLength = String(problem.answer).length
-    return Math.max(op1Length, op2Length, answerLength)
-  }
+    const op1Length = String(problem.operand1).length;
+    const op2Length = String(problem.operand2).length;
+    const answerLength = String(problem.answer).length;
+    return Math.max(op1Length, op2Length, answerLength);
+  };
 
   const renderProblem = (problem: MathProblem, index: number) => {
-    const maxDigits = getMaxDigits(problem)
+    const maxDigits = getMaxDigits(problem);
 
     const renderCarryOverRow = (problem: MathProblem) => {
-      if (!content.showCarryOver) return null
+      if (!content.showCarryOver) return null;
 
-      const carryBlanks = (content.carryOverBlanks || []).filter((b) => b.problemId === problem.id)
-      if (carryBlanks.length === 0) return null
+      const carryBlanks = (content.carryOverBlanks || []).filter(
+        (b) => b.problemId === problem.id
+      );
+      if (carryBlanks.length === 0) return null;
 
       // Create array for proper alignment
-      const carryRow = Array(maxDigits).fill(null)
+      const carryRow = Array(maxDigits).fill(null);
 
       // Fill in the carry blanks at correct positions
       carryBlanks.forEach((carryBlank) => {
-        let position = 0
-        if (carryBlank.place === "ones") position = maxDigits - 1
-        else if (carryBlank.place === "tens") position = maxDigits - 2
-        else if (carryBlank.place === "hundreds") position = maxDigits - 3
-        else if (carryBlank.place === "thousands") position = maxDigits - 4
+        let position = 0;
+        if (carryBlank.place === "ones") position = maxDigits - 1;
+        else if (carryBlank.place === "tens") position = maxDigits - 2;
+        else if (carryBlank.place === "hundreds") position = maxDigits - 3;
+        else if (carryBlank.place === "thousands") position = maxDigits - 4;
 
         if (position >= 0) {
-          carryRow[position] = carryBlank
+          carryRow[position] = carryBlank;
         }
-      })
+      });
 
       return (
         <div className="flex justify-center mb-2">
@@ -196,23 +252,33 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
             {carryRow.map((carryBlank, index) => {
               if (!carryBlank) {
                 return (
-                  <div key={index} className="w-10 h-10 flex items-center justify-center">
+                  <div
+                    key={index}
+                    className="w-10 h-10 flex items-center justify-center"
+                  >
                     {/* Empty space for alignment */}
                   </div>
-                )
+                );
               }
 
-              const carryKey = getCarryKey(problem.id, carryBlank.place)
-              const filledValue = carryOverAnswers[carryKey]
-              const isCorrect = isCarryCorrect(problem.id, carryBlank.place)
-              const isDisabled = carryBlank.correctValue === "";
+              const carryKey = getCarryKey(problem.id, carryBlank.place);
+              const filledValue = carryOverAnswers[carryKey];
+              const isCorrect = isCarryCorrect(problem.id, carryBlank.place);
+              const isEmptyDisabled = carryBlank.correctValue === "";
+              const isSequentiallyDisabled = !isCarryBoxEnabled(problem.id, carryBlank.place);
+              const isDisabled = isEmptyDisabled || isSequentiallyDisabled;
+              const isBorrow = carryBlank.operation === "borrow";
 
               return (
                 <div key={index} className="flex flex-col items-center">
                   <div
-                    className={`w-10 h-10 border-2 border-dashed rounded flex items-center justify-center text-lg font-mono transition-colors ${
-                      isDisabled
+                    className={`${
+                      isBorrow ? "w-12" : "w-10"
+                    } h-10 border-2 border-dashed rounded flex items-center justify-center text-lg font-mono transition-colors ${
+                      isEmptyDisabled
                         ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : isSequentiallyDisabled
+                        ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed opacity-60"
                         : showResults
                         ? isCorrect
                           ? "border-green-500 bg-green-50 text-green-800"
@@ -228,8 +294,31 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
                         : (e) =>
                             handleCarryDrop(e, problem.id, carryBlank.place)
                     }
+                    onDoubleClick={
+                      isDisabled || showResults
+                        ? undefined
+                        : () => {
+                            const carryKey = getCarryKey(
+                              problem.id,
+                              carryBlank.place
+                            );
+                            setCarryOverAnswers((prev) => ({
+                              ...prev,
+                              [carryKey]: "",
+                            }));
+                          }
+                    }
                   >
-                    {isDisabled ? "" : filledValue || "_"}
+                    {isEmptyDisabled
+                      ? "-"
+                      : isSequentiallyDisabled
+                      ? ""
+                      : filledValue ||
+                        (isBorrow
+                          ? carryBlank.correctValue.length === 2
+                            ? "_ _"
+                            : "_"
+                          : "_")}
                     {showResults && filledValue && !isDisabled && (
                       <span className="ml-1">
                         {isCorrect ? (
@@ -248,15 +337,20 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
             })}
           </div>
         </div>
-      )
-    }
+      );
+    };
 
-    const renderNumberWithBlanks = (value: string | number, position: "operand1" | "operand2" | "answer") => {
-      const strValue = String(value)
-      const blanksForPosition = problem.blanks.filter((b) => b.position === position)
+    const renderNumberWithBlanks = (
+      value: string | number,
+      position: "operand1" | "operand2" | "answer"
+    ) => {
+      const strValue = String(value);
+      const blanksForPosition = problem.blanks.filter(
+        (b) => b.position === position
+      );
 
       // Pad the number to match maxDigits for proper alignment
-      const paddedValue = strValue.padStart(maxDigits, " ")
+      const paddedValue = strValue.padStart(maxDigits, " ");
 
       return (
         <div className="flex items-center justify-center gap-1">
@@ -264,18 +358,31 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
             // Skip rendering for leading spaces
             if (digit === " ") {
               return (
-                <div key={digitIndex} className="w-10 h-10 flex items-center justify-center">
+                <div
+                  key={digitIndex}
+                  className="w-10 h-10 flex items-center justify-center"
+                >
                   {/* Empty space for alignment */}
                 </div>
-              )
+              );
             }
 
             // Calculate the actual digit index in the original number (without padding)
-            const actualDigitIndex = digitIndex - (maxDigits - strValue.length)
-            const hasBlank = blanksForPosition.some((b) => b.digitIndex === actualDigitIndex)
-            const blankKey = getBlankKey(problem.id, position, actualDigitIndex)
-            const filledDigit = filledBlanks[blankKey]
-            const isCorrect = isBlankCorrect(problem.id, position, actualDigitIndex)
+            const actualDigitIndex = digitIndex - (maxDigits - strValue.length);
+            const hasBlank = blanksForPosition.some(
+              (b) => b.digitIndex === actualDigitIndex
+            );
+            const blankKey = getBlankKey(
+              problem.id,
+              position,
+              actualDigitIndex
+            );
+            const filledDigit = filledBlanks[blankKey];
+            const isCorrect = isBlankCorrect(
+              problem.id,
+              position,
+              actualDigitIndex
+            );
 
             if (hasBlank) {
               return (
@@ -287,11 +394,13 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
                         ? "border-green-500 bg-green-50 text-green-800"
                         : "border-red-500 bg-red-50 text-red-800"
                       : filledDigit
-                        ? "border-blue-500 bg-blue-50 text-blue-800"
-                        : "border-gray-400 bg-gray-50 hover:border-blue-400"
+                      ? "border-blue-500 bg-blue-50 text-blue-800"
+                      : "border-gray-400 bg-gray-50 hover:border-blue-400"
                   } ${showResults ? "" : "cursor-pointer"}`}
                   onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, problem.id, position, actualDigitIndex)}
+                  onDrop={(e) =>
+                    handleDrop(e, problem.id, position, actualDigitIndex)
+                  }
                 >
                   {filledDigit || "_"}
                   {showResults && filledDigit && (
@@ -304,7 +413,7 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
                     </span>
                   )}
                 </div>
-              )
+              );
             } else {
               return (
                 <div
@@ -313,12 +422,12 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
                 >
                   {digit}
                 </div>
-              )
+              );
             }
           })}
         </div>
-      )
-    }
+      );
+    };
 
     return (
       <Card key={problem.id} className="p-6">
@@ -334,26 +443,32 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
 
           <div className="flex flex-col items-center space-y-3 font-mono text-xl">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500 w-16 text-right">First:</span>
+              <span className="text-sm text-gray-500 w-16 text-right">
+                First:
+              </span>
               {renderNumberWithBlanks(problem.operand1, "operand1")}
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500 w-16 text-right">{problem.operator}:</span>
+              <span className="text-sm text-gray-500 w-16 text-right">
+                {problem.operator}:
+              </span>
               {renderNumberWithBlanks(problem.operand2, "operand2")}
             </div>
 
             <div className="border-t-2 border-gray-400 w-full max-w-xs"></div>
 
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500 w-16 text-right">Answer:</span>
+              <span className="text-sm text-gray-500 w-16 text-right">
+                Answer:
+              </span>
               {renderNumberWithBlanks(problem.answer, "answer")}
             </div>
           </div>
         </div>
       </Card>
-    )
-  }
+    );
+  };
 
   const getAvailableCount = (digit: string) => {
     // Always return a positive count to allow multiple usage

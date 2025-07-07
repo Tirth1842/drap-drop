@@ -150,45 +150,81 @@ export function MathOperationsBuilder({ content, onChange }: MathOperationsBuild
         carry = newCarry
       }
     } else if (operator === "-") {
-      // Subtraction - calculate borrows
-      const places = ["ones", "tens", "hundreds", "thousands"] as const
-      let borrow = 0
+      // Subtraction - calculate borrows with actual borrowed values
+      const places = ["ones", "tens", "hundreds", "thousands"] as const;
 
+      // Create a working copy of the digits for borrowing calculations
+      const workingDigits: Array<{
+        place: "ones" | "tens" | "hundreds" | "thousands";
+        digit1: number;
+        digit2: number;
+      }> = [];
       for (let i = 0; i < places.length; i++) {
-        const place = places[i]
-        let digit1 = 0
-        let digit2 = 0
+        const place = places[i];
+        let digit1 = 0;
+        let digit2 = 0;
 
         // Extract digits for current place
         if (place === "ones") {
-          digit1 = op1 % 10
-          digit2 = op2 % 10
+          digit1 = op1 % 10;
+          digit2 = op2 % 10;
         } else if (place === "tens") {
-          digit1 = Math.floor((op1 % 100) / 10)
-          digit2 = Math.floor((op2 % 100) / 10)
+          digit1 = Math.floor((op1 % 100) / 10);
+          digit2 = Math.floor((op2 % 100) / 10);
         } else if (place === "hundreds") {
-          digit1 = Math.floor((op1 % 1000) / 100)
-          digit2 = Math.floor((op2 % 1000) / 100)
+          digit1 = Math.floor((op1 % 1000) / 100);
+          digit2 = Math.floor((op2 % 1000) / 100);
         } else if (place === "thousands") {
-          digit1 = Math.floor((op1 % 10000) / 1000)
-          digit2 = Math.floor((op2 % 10000) / 1000)
+          digit1 = Math.floor((op1 % 10000) / 1000);
+          digit2 = Math.floor((op2 % 10000) / 1000);
         }
 
-        // Adjust digit1 for previous borrow
-        digit1 -= borrow
-        borrow = 0
+        workingDigits.push({ place, digit1, digit2 });
+      }
+
+      // Track which places need borrow fields
+      const borrowPlaces = new Set();
+
+      // Process borrowing from right to left (ones to thousands)
+      for (let i = 0; i < workingDigits.length; i++) {
+        const current = workingDigits[i];
 
         // Check if we need to borrow
-        if (digit1 < digit2 && (digit1 > 0 || digit2 > 0)) {
-          borrow = 1
-          carryBlanks.push({
-            problemId: problem.id,
-            place,
-            correctValue: "1",
-            operation: "borrow",
-          })
+        if (
+          current.digit1 < current.digit2 &&
+          (current.digit1 > 0 || current.digit2 > 0)
+        ) {
+          // Find the next higher place that can lend
+          for (let j = i + 1; j < workingDigits.length; j++) {
+            if (workingDigits[j].digit1 > 0) {
+              // Borrow from this place
+              workingDigits[j].digit1 -= 1;
+
+              // Add 10 to all places between the borrower and lender
+              for (let k = j - 1; k >= i; k--) {
+                workingDigits[k].digit1 += 10;
+              }
+
+              // Mark both borrower and lender as needing borrow fields
+              borrowPlaces.add(i); // borrower
+              borrowPlaces.add(j); // lender
+
+              break;
+            }
+          }
         }
       }
+
+      // After all borrowing calculations, create borrow blanks for affected places
+      borrowPlaces.forEach((index: any) => {
+        const digit = workingDigits[index];
+        carryBlanks.push({
+          problemId: problem.id,
+          place: digit.place,
+          correctValue: String(digit.digit1),
+          operation: "borrow",
+        });
+      });
     }
 
     return carryBlanks
