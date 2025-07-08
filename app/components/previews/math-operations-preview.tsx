@@ -519,11 +519,12 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
       <div className="text-center">
         <h3 className="text-lg font-medium mb-2">{content.questionText}</h3>
         <p className="text-sm text-gray-600">
-          Drag digits from below to fill in the blanks • {getFilledBlanks()}/{getTotalBlanks()} blanks filled
+          Drag digits from below to fill in the blanks • {getFilledBlanks()}/
+          {getTotalBlanks()} blanks filled
         </p>
       </div>
 
-      <div className={`grid gap-6 ${content.layout === "horizontal" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+      <div className={`grid gap-6 ${content.layout === "horizontal" ? "grid-cols-1 md:grid-cols-2": "grid-cols-1"}`}>
         {content.problems.map((problem, index) => renderProblem(problem, index))}
       </div>
 
@@ -544,13 +545,17 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
               >
                 {digit}
               </div>
-            )
+            );
           })}
         </div>
       </div>
 
       <div className="flex gap-2 justify-center">
-        <Button onClick={handleSubmit} disabled={!canSubmit() || showResults} className="flex items-center gap-2">
+        <Button
+          onClick={handleSubmit}
+          disabled={!canSubmit() || showResults}
+          className="flex items-center gap-2"
+        >
           <Calculator className="w-4 h-4" />
           Check Answers
         </Button>
@@ -563,53 +568,97 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
         <div className="space-y-4">
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
             <p className="text-sm text-blue-800">
-              💡 <strong>Results shown!</strong> Green checkmarks indicate correct answers, red X marks show incorrect
-              ones.
+              💡 <strong>Results shown!</strong> Green checkmarks indicate
+              correct answers, red X marks show incorrect ones.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {content.problems.map((problem, problemIndex) => (
               <Card key={problem.id} className="p-4">
-                <h5 className="font-medium mb-2">Problem {problemIndex + 1} Results:</h5>
+                <h5 className="font-medium mb-2">
+                  Problem {problemIndex + 1} Results:
+                </h5>
                 <div className="space-y-1 text-sm">
                   {problem.blanks.map((blank, blankIndex) => {
-                    const blankKey = getBlankKey(problem.id, blank.position, blank.digitIndex)
-                    const filledDigit = filledBlanks[blankKey]
-                    const isCorrect = isBlankCorrect(problem.id, blank.position, blank.digitIndex)
+                    const blankKey = getBlankKey(
+                      problem.id,
+                      blank.position,
+                      blank.digitIndex
+                    );
+                    const filledDigit = filledBlanks[blankKey];
+                    const isCorrect = isBlankCorrect(
+                      problem.id,
+                      blank.position,
+                      blank.digitIndex
+                    );
 
                     return (
                       <div key={blankIndex} className="flex items-center gap-2">
-                        <span className={isCorrect ? "text-green-600" : "text-red-600"}>
-                          {blank.position} digit {blank.digitIndex + 1}: "{filledDigit || "empty"}"
+                        <span
+                          className={
+                            isCorrect ? "text-green-600" : "text-red-600"
+                          }
+                        >
+                          {blank.position} digit {blank.digitIndex + 1}: "
+                          {filledDigit || "empty"}"
                         </span>
-                        {!isCorrect && <span className="text-gray-600 text-xs">(correct: "{blank.correctDigit}")</span>}
+                        {!isCorrect && (
+                          <span className="text-gray-600 text-xs">
+                            (correct: "{blank.correctDigit}")
+                          </span>
+                        )}
                       </div>
-                    )
+                    );
                   })}
                 </div>
                 {content.showCarryOver &&
-                  (content.carryOverBlanks || []).filter((b) => b.problemId === problem.id).length > 0 && (
+                  (content.carryOverBlanks || []).filter(
+                    (b) => b.problemId === problem.id
+                  ).length > 0 && (
                     <div className="mt-2 pt-2 border-t">
-                      <h6 className="font-medium text-xs mb-1">Carryover/Borrowing:</h6>
+                      <h6 className="font-medium text-xs mb-1">
+                        Carryover/Borrowing:
+                      </h6>
                       <div className="space-y-1 text-xs">
                         {(content.carryOverBlanks || [])
                           .filter((b) => b.problemId === problem.id)
+                          .filter(
+                            (carryBlank) => carryBlank.correctValue !== ""
+                          ) // Filter out disabled blanks
                           .map((carryBlank, carryIndex) => {
-                            const carryKey = getCarryKey(problem.id, carryBlank.place)
-                            const filledValue = carryOverAnswers[carryKey]
-                            const isCorrect = isCarryCorrect(problem.id, carryBlank.place)
+                            const carryKey = getCarryKey(
+                              problem.id,
+                              carryBlank.place
+                            );
+                            const filledValue = carryOverAnswers[carryKey];
+                            const isCorrect = isCarryCorrect(
+                              problem.id,
+                              carryBlank.place
+                            );
 
                             return (
-                              <div key={carryIndex} className="flex items-center gap-2">
-                                <span className={isCorrect ? "text-green-600" : "text-red-600"}>
-                                  {carryBlank.place} {carryBlank.operation}: "{filledValue || "empty"}"
+                              <div
+                                key={carryIndex}
+                                className="flex items-center gap-2"
+                              >
+                                <span
+                                  className={
+                                    isCorrect
+                                      ? "text-green-600"
+                                      : "text-red-600"
+                                  }
+                                >
+                                  {carryBlank.place} {carryBlank.operation}: "
+                                  {filledValue || "empty"}"
                                 </span>
                                 {!isCorrect && (
-                                  <span className="text-gray-600 text-xs">(correct: "{carryBlank.correctValue}")</span>
+                                  <span className="text-gray-600 text-xs">
+                                    (correct: "{carryBlank.correctValue}")
+                                  </span>
                                 )}
                               </div>
-                            )
+                            );
                           })}
                       </div>
                     </div>
@@ -620,5 +669,5 @@ export function MathOperationsPreview({ content }: MathOperationsPreviewProps) {
         </div>
       )}
     </div>
-  )
+  );
 }
