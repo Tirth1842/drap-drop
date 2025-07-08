@@ -10,6 +10,7 @@ import { Plus, Trash2, GripVertical, ImageIcon } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { upload } from "@/lib/utils"
+import { count } from "console"
 
 interface DragDropItem {
   id: string
@@ -35,7 +36,10 @@ interface DragDropContent {
   boxes?: Array<{
     id: string
     label: string
-    correctAnswers?: string[]
+    correctAnswers?: [{
+      id: string,
+      count?: number // Optional count for how many times this answer can be used
+    }]
   }>
 }
 
@@ -153,8 +157,8 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
     const newBox = {
       id: Date.now().toString(),
       label: "",
-      correctAnswers: [],
     }
+    
     setLocalContent((prev) => ({
       ...prev,
       boxes: [...(prev.boxes || []), newBox],
@@ -162,6 +166,7 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
   }
 
   const updateBox = (id: string, updates: Partial<(typeof localContent.boxes)[0]>) => {
+    
     setLocalContent((prev) => ({
       ...prev,
       boxes: prev.boxes?.map((box) => (box.id === id ? { ...box, ...updates } : box)) || [],
@@ -407,20 +412,46 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
                           <input
                             type="checkbox"
                             id={`${box.id}-${item.id}`}
-                            checked={(box.correctAnswers || []).includes(item.text || "")}
+                            checked={(box.correctAnswers || []).some((ans) => ans?.id === item.id)}
                             onChange={(e) => {
                               const currentAnswers = box.correctAnswers || []
-                              const itemText = item.text || ""
                               const newAnswers = e.target.checked
-                                ? [...currentAnswers, itemText]
-                                : currentAnswers.filter((answer) => answer !== itemText)
+                                ? [...currentAnswers, {id: item.id,count: 1}]
+                                : currentAnswers.filter((answer) => answer?.id !== item.id)
                               updateBox(box.id, { correctAnswers: newAnswers })
-                            }}
-                            className="rounded"
-                          />
+                            } }
+                            className="rounded" />
                           <Label htmlFor={`${box.id}-${item.id}`} className="text-sm cursor-pointer">
-                            {item.text || `Item ${localContent.items.indexOf(item) + 1}`}
+                            {item.text ||
+                              (item.imageUrl && <img
+                                src={item.imageUrl || "/placeholder.svg"}
+                                alt={item.altText || "Item Image"}
+                                className="inline-block w-6 h-6 ml-2 rounded" />) || `Item ${localContent.items.indexOf(item) + 1}`}
                           </Label>
+                        <div key={item.id} className="flex items-center space-x-2">
+                          { (box.correctAnswers?.find((ans) => ans?.id === item.id) ) && (<Input
+                              type="number"
+                              value={box.correctAnswers?.find((ans) => ans?.id === item.id)?.count || 1}
+                              onChange={(e) => {
+                                const count = Number.parseInt(e.target.value)
+                                const currentAnswers = box.correctAnswers || []
+                                const existingAnswer = currentAnswers.find((ans) => ans?.id === item.id)
+                                if (existingAnswer) {
+                                  if (count > 0) {
+                                    updateBox(box.id, {
+                                      correctAnswers: currentAnswers.map((ans) => ans?.id === item.id ? { ...ans, count } : ans
+                                      ),
+                                    })
+                                  } else {
+                                    updateBox(box.id, {
+                                      correctAnswers: currentAnswers.filter((ans) => ans?.id !== item.id),
+                                    })
+                                  }
+                                }
+                              } }
+                              placeholder="Count (optional)"
+                              className="w-24" />)}
+                          </div>
                         </div>
                       ))}
                     </div>
