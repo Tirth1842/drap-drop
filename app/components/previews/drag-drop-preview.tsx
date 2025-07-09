@@ -12,7 +12,8 @@ import { SequencePreview } from "./sequence-preview"
 interface DragDropPreviewProps {
   content: {
     questionText: string
-    dragDropType: "categorize" | "sequence" | "match-boxes"
+    dragDropType: "categorize" | "sequence" | "match-boxes",
+    displayDuplicateItems: boolean,
     items: Array<{
       id: string
       text: string
@@ -28,7 +29,8 @@ interface DragDropPreviewProps {
     }>
     boxes?: Array<{
       id: string
-      label: string
+      label: string,
+      image?:string,
       correctAnswers?: [{
         id: string,
         count?: number // Optional count for how many times this answer can be used
@@ -40,6 +42,13 @@ interface DragDropPreviewProps {
 export function DragDropPreview({ content }: DragDropPreviewProps) {
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const [droppedItems, setDroppedItems] = useState<Record<string, Array<{ targetId: string; count: number }>>>({});
+  const [itemLists, setItemList] = useState<Array<{
+    id: string
+      text: string
+      category?: string
+      correctPosition?: number
+      imageUrl?: string // Optional image URL for items
+  }>>([]);
   const [showResults, setShowResults] = useState(false)
   const [allowDuplicateItems, setAllowDuplicateItems] = useState(false)
 
@@ -48,7 +57,26 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
       // For match-boxes type, allow duplicate items to be dropped in the same box
       setAllowDuplicateItems(true)
     }
-  },[content.dragDropType])
+
+   if(content.displayDuplicateItems){
+    const itemList = createItemLists();
+    setItemList(itemList);
+   }
+  },[content.dragDropType, content.displayDuplicateItems, content.boxes,content.items])
+  
+  const createItemLists = () => {
+    const newList =  content.items.flatMap(item => {
+      const count = content.boxes?.reduce((accumulator, currentBox) => {
+        const newcount = (currentBox?.correctAnswers?.find(ans => ans.id === item.id))?.count || 0
+              return newcount + accumulator 
+      },0) || 0
+
+      return Array.from({length: count}, (_, index) => ({
+        ...item
+      }))
+    })
+    return newList;
+  }
   const handleDragStart = (e: React.DragEvent, itemId: string) => {
     // Prevent dragging if results are shown
     if (showResults) {
@@ -97,6 +125,17 @@ export function DragDropPreview({ content }: DragDropPreviewProps) {
         [draggedItem]: updatedItems,
       };
     });
+
+    // remove that item from itemlists
+    if(content.displayDuplicateItems){
+
+      setItemList((prev) => {
+        const newList = structuredClone(prev);
+        const index = newList.findIndex((item) => draggedItem === item.id)
+        newList.splice(index,1)
+         return newList
+      })
+    }
   
     setDraggedItem(null);
   };
@@ -110,12 +149,12 @@ const handleDoubleClick = (e: React.MouseEvent, itemId: string, boxId?:string) =
   
   // Prevent double click if results are shown
   if (showResults) return;
-
   if (allowDuplicateItems) {
     // If allowDuplicateItems is true, just remove one instance of the item
     console.log("Removing one instance of item:", itemId);
     
     setDroppedItems((prev) => {
+      
       // Check if item exists and has count > 0
       if (!prev[itemId] || prev[itemId].length === 0) {
         console.log("Item doesn't exist or count is 0, returning unchanged state");
@@ -123,7 +162,7 @@ const handleDoubleClick = (e: React.MouseEvent, itemId: string, boxId?:string) =
       }
       
       // Create a shallow copy of the previous state
-      const newDroppedItems = { ...prev };
+      const newDroppedItems = structuredClone(prev);
       console.log(newDroppedItems)
       
         newDroppedItems[itemId] = newDroppedItems[itemId].map((item) =>
@@ -133,6 +172,15 @@ const handleDoubleClick = (e: React.MouseEvent, itemId: string, boxId?:string) =
       
       return newDroppedItems;
     });
+    if(content.displayDuplicateItems) {
+      setItemList((prev) => {
+        const newList = structuredClone(prev);
+        const elementToPuash = content.items.find(item => item.id === itemId)
+        elementToPuash && newList.push(elementToPuash)
+  
+        return newList
+      })
+    }
   } else {
     setDroppedItems((prev) => {
       // Check if item exists before trying to delete
@@ -159,6 +207,10 @@ useEffect(() => {
   const resetAnswers = () => {
     setDroppedItems({})
     setShowResults(false)
+    if(content.displayDuplicateItems){
+      const itemList = createItemLists();
+      setItemList(itemList);
+    }
   }
 
   const isCorrect = (itemId: string) => {
@@ -197,7 +249,7 @@ useEffect(() => {
             onDrop={(e) => handleDrop(e, category.id)}
             style={{
               backgroundImage: category.image ? `url(${category.image})` : "none",
-              backgroundSize: "cover",
+              backgroundSize: "contain",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
             }}
@@ -313,6 +365,12 @@ useEffect(() => {
                 "border-gray-300"}`}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, box.id)}
+            style={{
+              backgroundImage: box.image ? `url(${box.image})` : "none",
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
           >
            <CardContent className="p-4">
             <h3 className="font-semibold mb-2">{box.label}</h3>
@@ -320,7 +378,7 @@ useEffect(() => {
               {content.items
                 .filter((item) => droppedItems[item.id]?.some((d) => d.targetId === box.id))
                 .map((item) => {
-                  const count = (droppedItems[item.id]?.find((e) => e.targetId === box.id))?.count || 1;
+                  const count = (droppedItems[item.id]?.find((e) => e.targetId === box.id))?.count || 0;
                   // Create an array of unique keys for each instance
                   return Array.from({ length: count }, (_, index) => (
                     <Badge
@@ -330,7 +388,6 @@ useEffect(() => {
                       onDoubleClick={(e) => handleDoubleClick(e, item.id, box.id)}
                     >
                       {item.text}
-                      {count > 1 && <span className="ml-1 text-xs">({index + 1})</span>}
                       {item.imageUrl && <img className="w-8 h-8 object-cover rounded" src={item.imageUrl} alt="" />}
                     </Badge>
                   ));
@@ -345,7 +402,21 @@ useEffect(() => {
       <div className="space-y-2">
         <h3 className="font-semibold">Drag these items:</h3>
         <div className="flex flex-wrap gap-2">
-          {content.items.map((item) => (
+        {content.displayDuplicateItems ? (
+          itemLists.map((item,index) =>
+            ( <Badge
+              key={`${item}.${index}`}
+              variant="outline"
+              className={`p-2 transition-all hover:bg-blue-50 cursor-move`}
+              draggable={!showResults}
+              onDragStart={(e) => handleDragStart(e, item.id)}
+              >
+                {item.text}
+                {item.imageUrl && <img className="w-8 h-8 object-cover rounded" src={item.imageUrl} alt="" />}
+              </Badge>)
+           )
+        ): 
+        content.items.map((item) => (
             <Badge
               key={item.id}
               variant="outline"
@@ -361,7 +432,8 @@ useEffect(() => {
                 </span>
               )} */}
             </Badge>
-          ))}
+          )
+        )}
         </div>
       </div>
     </div>

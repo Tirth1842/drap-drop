@@ -1,68 +1,79 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Trash2, GripVertical, ImageIcon } from "lucide-react"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
-import { upload } from "@/lib/utils"
-import { count } from "console"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Trash2, GripVertical, ImageIcon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { upload } from "@/lib/utils";
+import { count } from "console";
 
 interface DragDropItem {
-  id: string
-  type: "text" | "image" | "mixed"
-  text?: string
-  imageUrl?: string
-  altText?: string
-  category?: string
-  correctPosition?: number
+  id: string;
+  type: "text" | "image" | "mixed";
+  text?: string;
+  imageUrl?: string;
+  altText?: string;
+  category?: string;
+  correctPosition?: number;
 }
 
 interface DragDropContent {
-  questionText: string
-  dragDropType: "categorize" | "sequence" | "match-boxes"
-  sequenceLayout?: "horizontal" | "vertical"
-  items: DragDropItem[]
+  questionText: string;
+  dragDropType: "categorize" | "sequence" | "match-boxes";
+  sequenceLayout?: "horizontal" | "vertical";
+  displayDuplicateItems?: boolean
+  items: DragDropItem[];
   categories?: Array<{
-    id: string
-    name: string
-    color: string
-    image?: string // Optional background image for categorizatio
-  }>
+    id: string;
+    name: string;
+    color: string;
+    image?: string; // Optional background image for categorizatio
+  }>;
   boxes?: Array<{
-    id: string
-    label: string
-    correctAnswers?: [{
-      id: string,
-      count?: number // Optional count for how many times this answer can be used
-    }]
-  }>
+    id: string;
+    label: string;
+    image?: string;
+    correctAnswers?: [
+      {
+        id: string;
+        count?: number; // Optional count for how many times this answer can be used
+      }
+    ];
+  }>;
 }
 
 interface DragDropBuilderProps {
-  content: DragDropContent
-  onChange: (content: DragDropContent) => void
+  content: DragDropContent;
+  onChange: (content: DragDropContent) => void;
 }
 
 export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
   const [localContent, setLocalContent] = useState<DragDropContent>({
     questionText: "",
     dragDropType: "categorize",
+    displayDuplicateItems: false,
     items: [],
     categories: [],
     boxes: [],
     ...content,
-  })
-  const { toast } = useToast()
-  const [uploading, setUploading] = useState(false) // Moved useState to top level
+  });
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false); // Moved useState to top level
 
   useEffect(() => {
-    onChange(localContent)
-  }, [localContent, onChange])
+    onChange(localContent);
+  }, [localContent, onChange]);
 
   const addItem = () => {
     const newItem: DragDropItem = {
@@ -71,141 +82,204 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
       text: "",
       category: localContent.categories?.[0]?.id || "",
       correctPosition: localContent.items.length + 1,
-    }
+    };
     setLocalContent((prev) => ({
       ...prev,
       items: [...prev.items, newItem],
-    }))
-  }
+    }));
+  };
 
   const updateItem = (id: string, updates: Partial<DragDropItem>) => {
     setLocalContent((prev) => ({
       ...prev,
-      items: prev.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
-    }))
-  }
+      items: prev.items.map((item) =>
+        item.id === id ? { ...item, ...updates } : item
+      ),
+    }));
+  };
 
   const removeItem = (id: string) => {
     setLocalContent((prev) => ({
       ...prev,
       items: prev.items.filter((item) => item.id !== id),
-    }))
-  }
+    }));
+  };
 
   const addCategory = () => {
-    const colors = ["bg-blue-100", "bg-green-100", "bg-yellow-100", "bg-purple-100", "bg-pink-100"]
+    const colors = [
+      "bg-blue-100",
+      "bg-green-100",
+      "bg-yellow-100",
+      "bg-purple-100",
+      "bg-pink-100",
+    ];
     const newCategory = {
       id: Date.now().toString(),
       name: "",
       color: colors[localContent.categories?.length || 0] || "bg-gray-100",
-    }
+    };
     setLocalContent((prev) => ({
       ...prev,
       categories: [...(prev.categories || []), newCategory],
-    }))
-  }
+    }));
+  };
 
-  const updateCategory = (id: string, updates: Partial<(typeof localContent.categories)[0]>) => {
+  const updateCategory = (
+    id: string,
+    updates: Partial<(typeof localContent.categories)[0]>
+  ) => {
     setLocalContent((prev) => ({
       ...prev,
-      categories: prev.categories?.map((cat) => (cat.id === id ? { ...cat, ...updates } : cat)) || [],
-    }))
-  }
+      categories:
+        prev.categories?.map((cat) =>
+          cat.id === id ? { ...cat, ...updates } : cat
+        ) || [],
+    }));
+  };
 
-  const handleCategoryImageUpload = (id: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const handleCategoryImageUpload = (
+    id: string,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    setUploading(true)
+    setUploading(true);
     upload(file)
       .then((imageUrl) => {
-        updateCategory(id, { image: imageUrl })
+        updateCategory(id, { image: imageUrl });
         toast({
           title: "Upload complete",
           description: "Image uploaded successfully.",
-        })
+        });
       })
       .catch(() => {
         toast({
           variant: "destructive",
           title: "Uh oh! Something went wrong.",
           description: "There was a problem with your upload.",
-        })
+        });
       })
       .finally(() => {
-        setUploading(false)
-      })
-  }
+        setUploading(false);
+      });
+  };
 
   const updateCategoryImage = (id: string, imageUrl: string) => {
     setLocalContent((prev) => ({
       ...prev,
-      categories: prev.categories?.map((cat) =>
-        cat.id === id ? { ...cat, image: imageUrl } : cat
-      ) || [],
-    }))
-  }
+      categories:
+        prev.categories?.map((cat) =>
+          cat.id === id ? { ...cat, image: imageUrl } : cat
+        ) || [],
+    }));
+  };
 
   const removeCategory = (id: string) => {
     setLocalContent((prev) => ({
       ...prev,
       categories: prev.categories?.filter((cat) => cat.id !== id) || [],
-    }))
-  }
+    }));
+  };
 
   const addBox = () => {
     const newBox = {
       id: Date.now().toString(),
       label: "",
-    }
-    
+    };
+
     setLocalContent((prev) => ({
       ...prev,
       boxes: [...(prev.boxes || []), newBox],
-    }))
-  }
+    }));
+  };
 
-  const updateBox = (id: string, updates: Partial<(typeof localContent.boxes)[0]>) => {
-    
+  const updateBox = (
+    id: string,
+    updates: Partial<(typeof localContent.boxes)[0]>
+  ) => {
     setLocalContent((prev) => ({
       ...prev,
-      boxes: prev.boxes?.map((box) => (box.id === id ? { ...box, ...updates } : box)) || [],
-    }))
-  }
+      boxes:
+        prev.boxes?.map((box) =>
+          box.id === id ? { ...box, ...updates } : box
+        ) || [],
+    }));
+  };
 
   const removeBox = (id: string) => {
     setLocalContent((prev) => ({
       ...prev,
       boxes: prev.boxes?.filter((box) => box.id !== id) || [],
-    }))
-  }
+    }));
+  };
+
+  const handleBoxImageUpload = (
+    id: string,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    upload(file)
+      .then((imageUrl) => {
+        updateBox(id, { image: imageUrl });
+        toast({
+          title: "Upload complete",
+          description: "Image uploaded successfully.",
+        });
+      })
+      .catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+          description: "There was a problem with your upload.",
+        });
+      })
+      .finally(() => {
+        setUploading(false);
+      });
+  };
+
+  const updateBoxImage = (id: string, imageUrl: string) => {
+    setLocalContent((prev) => ({
+      ...prev,
+      boxes:
+        prev.boxes?.map((box) =>
+          box.id === id ? { ...box, image: imageUrl } : box
+        ) || [],
+    }));
+  };
 
   const handleImageUpload = async (file: File, itemId: string) => {
-    setUploading(true)
+    setUploading(true);
     try {
-      const imageUrl = await upload(file)
-      updateItem(itemId, { imageUrl: imageUrl, type: "image" })
+      const imageUrl = await upload(file);
+      updateItem(itemId, { imageUrl: imageUrl, type: "image" });
       toast({
         title: "Upload complete",
         description: "Image uploaded successfully.",
-      })
+      });
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Uh oh! Something went wrong.",
         description: "There was a problem with your upload.",
-      })
+      });
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const renderOptionEditor = (item: DragDropItem) => {
     return (
       <div className="flex flex-col space-y-2">
         <Select
           value={item.type}
-          onValueChange={(value) => updateItem(item.id, { type: value as "text" | "image" | "mixed" })}
+          onValueChange={(value) =>
+            updateItem(item.id, { type: value as "text" | "image" | "mixed" })
+          }
         >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Select Type" />
@@ -238,21 +312,30 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
                   variant="destructive"
                   size="icon"
                   className="absolute top-0 right-0"
-                  onClick={() => updateItem(item.id, { imageUrl: undefined, altText: undefined, type: "text" })}
+                  onClick={() =>
+                    updateItem(item.id, {
+                      imageUrl: undefined,
+                      altText: undefined,
+                      type: "text",
+                    })
+                  }
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             ) : (
-              <Label htmlFor={`upload-image-${item.id}`} className="cursor-pointer">
+              <Label
+                htmlFor={`upload-image-${item.id}`}
+                className="cursor-pointer"
+              >
                 <Input
                   type="file"
                   id={`upload-image-${item.id}`}
                   className="hidden"
                   onChange={(e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0]
+                    const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
-                      handleImageUpload(file, item.id)
+                      handleImageUpload(file, item.id);
                     }
                   }}
                 />
@@ -270,14 +353,16 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
               <Textarea
                 placeholder="Image alt text"
                 value={item.altText || ""}
-                onChange={(e) => updateItem(item.id, { altText: e.target.value })}
+                onChange={(e) =>
+                  updateItem(item.id, { altText: e.target.value })
+                }
               />
             )}
           </>
         )}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -286,7 +371,12 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
         <Input
           id="questionText"
           value={localContent.questionText}
-          onChange={(e) => setLocalContent((prev) => ({ ...prev, questionText: e.target.value }))}
+          onChange={(e) =>
+            setLocalContent((prev) => ({
+              ...prev,
+              questionText: e.target.value,
+            }))
+          }
           placeholder="Enter the question or instruction"
         />
       </div>
@@ -321,68 +411,83 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
           </div>
 
           {/* <div className="grid grid-cols-2 md:grid-cols-2 gap-4"> */}
-            <Card className="gap-4 pt-4">
+          <Card className="gap-4 pt-4">
+            <CardContent className="space-y-4">
+              {localContent.categories?.map((category, index) => (
+                <div key={index} className="space-y-4 p-4 border rounded-lg">
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={category.name}
+                      onChange={(e) =>
+                        updateCategory(category.id, { name: e.target.value })
+                      }
+                      placeholder={`Category ${index + 1} name`}
+                    />
+                    {(localContent.categories?.length ?? 0) > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeCategory(category.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
 
-           <CardContent className="space-y-4">
-
-            {localContent.categories?.map((category, index) => (
-               <div key={index} className="space-y-4 p-4 border rounded-lg">
-               <div className="flex gap-2 items-center">
-                 <Input
-                   value={category.name}
-                   onChange={(e) => updateCategory(category.id, {name: e.target.value })}
-                   placeholder={`Category ${index + 1} name`}
-                 />
-                 {(localContent.categories?.length ?? 0) > 1 && (
-                   <Button type="button" 
-                   variant="outline" size="sm" onClick={() => removeCategory(category.id)}>
-                     <Trash2 className="h-4 w-4" />
-                   </Button>
-                 )}
-               </div>
-
-               <div className="space-y-2">
-                 <Label>Background Image (Optional)</Label>
-                 <div className="flex gap-2">
-                   <Input
-                     type="file"
-                     accept="image/*"
-                     onChange={(e) => handleCategoryImageUpload(category.id, e)}
-                     className="hidden"
-                     id={`category-image-upload-${index}`}
-                   />
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={() => document.getElementById(`category-image-upload-${index}`)?.click()}
-                     className="flex items-center gap-2"
-                   >
-                     <ImageIcon className="h-4 w-4" />
-                     {category.image ? "Change Background" : "Add Background"}
-                   </Button>
-                   {category.image && (
-                     <Button type="button" variant="outline" onClick={() => updateCategoryImage(category.id, "")}>
-                       Remove
-                     </Button>
-                   )}
-                 </div>
-                 {category.image && (
-                   <div className="mt-2">
-                     <img
-                       src={category.image || "/placeholder.svg"}
-                       alt="Category background"
-                       className="max-w-32 max-h-32 object-cover rounded border"
-                     />
-                   </div>
-                 )}
-               </div>
-             </div>
-            
-            ))}
-           </CardContent>
-            </Card>
+                  <div className="space-y-2">
+                    <Label>Background Image (Optional)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          handleCategoryImageUpload(category.id, e)
+                        }
+                        className="hidden"
+                        id={`category-image-upload-${index}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document
+                            .getElementById(`category-image-upload-${index}`)
+                            ?.click()
+                        }
+                        className="flex items-center gap-2"
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                        {category.image
+                          ? "Change Background"
+                          : "Add Background"}
+                      </Button>
+                      {category.image && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => updateCategoryImage(category.id, "")}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    {category.image && (
+                      <div className="mt-2">
+                        <img
+                          src={category.image || "/placeholder.svg"}
+                          alt="Category background"
+                          className="max-w-32 max-h-32 object-cover rounded border"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
           {/* </div> */}
-        </div> 
+        </div>
       )}
 
       {localContent.dragDropType === "match-boxes" && (
@@ -396,76 +501,187 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {localContent.boxes?.map((box) => (
+            {localContent.boxes?.map((box, index) => (
               <Card key={box.id} className="p-4">
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <Input
                     value={box.label}
-                    onChange={(e) => updateBox(box.id, { label: e.target.value })}
+                    onChange={(e) =>
+                      updateBox(box.id, { label: e.target.value })
+                    }
                     placeholder="Box label (e.g., 'Sum of 2+3')"
                   />
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Correct Answers (select multiple)</Label>
+                    <Label>Background Image (Optional)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleBoxImageUpload(box.id, e)}
+                        className="hidden"
+                        id={`category-image-upload-${index}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document
+                            .getElementById(`category-image-upload-${index}`)
+                            ?.click()
+                        }
+                        className="flex items-center gap-1 p-2"
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                        {box.image ? "Change Background" : "Add Background"}
+                      </Button>
+                      {box.image && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => updateBoxImage(box.id, "")}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {box.image && (
+                      <div className="mt-2">
+                        <img
+                          src={box.image || "/placeholder.svg"}
+                          alt="Category background"
+                          className="max-w-32 max-h-32 object-cover rounded border"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Correct Answers (select multiple)
+                    </Label>
                     <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2">
                       {localContent.items.map((item) => (
-                        <div key={item.id} className="flex items-center space-x-2">
+                        <div
+                          key={item.id}
+                          className="flex items-center space-x-2"
+                        >
                           <input
                             type="checkbox"
                             id={`${box.id}-${item.id}`}
-                            checked={(box.correctAnswers || []).some((ans) => ans?.id === item.id)}
+                            checked={(box.correctAnswers || []).some(
+                              (ans) => ans?.id === item.id
+                            )}
                             onChange={(e) => {
-                              const currentAnswers = box.correctAnswers || []
+                              const currentAnswers = box.correctAnswers || [];
                               const newAnswers = e.target.checked
-                                ? [...currentAnswers, {id: item.id,count: 1}]
-                                : currentAnswers.filter((answer) => answer?.id !== item.id)
-                              updateBox(box.id, { correctAnswers: newAnswers })
-                            } }
-                            className="rounded" />
-                          <Label htmlFor={`${box.id}-${item.id}`} className="text-sm cursor-pointer">
+                                ? [...currentAnswers, { id: item.id, count: 1 }]
+                                : currentAnswers.filter(
+                                    (answer) => answer?.id !== item.id
+                                  );
+                              updateBox(box.id, { correctAnswers: newAnswers });
+                            }}
+                            className="rounded"
+                          />
+                          <Label
+                            htmlFor={`${box.id}-${item.id}`}
+                            className="text-sm cursor-pointer"
+                          >
                             {item.text ||
-                              (item.imageUrl && <img
-                                src={item.imageUrl || "/placeholder.svg"}
-                                alt={item.altText || "Item Image"}
-                                className="inline-block w-6 h-6 ml-2 rounded" />) || `Item ${localContent.items.indexOf(item) + 1}`}
+                              (item.imageUrl && (
+                                <img
+                                  src={item.imageUrl || "/placeholder.svg"}
+                                  alt={item.altText || "Item Image"}
+                                  className="inline-block w-6 h-6 ml-2 rounded"
+                                />
+                              )) ||
+                              `Item ${localContent.items.indexOf(item) + 1}`}
                           </Label>
-                        <div key={item.id} className="flex items-center space-x-2">
-                          { (box.correctAnswers?.find((ans) => ans?.id === item.id) ) && (<Input
-                              type="number"
-                              value={box.correctAnswers?.find((ans) => ans?.id === item.id)?.count || 1}
-                              onChange={(e) => {
-                                const count = Number.parseInt(e.target.value)
-                                const currentAnswers = box.correctAnswers || []
-                                const existingAnswer = currentAnswers.find((ans) => ans?.id === item.id)
-                                if (existingAnswer) {
-                                  if (count > 0) {
-                                    updateBox(box.id, {
-                                      correctAnswers: currentAnswers.map((ans) => ans?.id === item.id ? { ...ans, count } : ans
-                                      ),
-                                    })
-                                  } else {
-                                    updateBox(box.id, {
-                                      correctAnswers: currentAnswers.filter((ans) => ans?.id !== item.id),
-                                    })
-                                  }
+                          <div
+                            key={item.id}
+                            className="flex items-center space-x-2"
+                          >
+                            {box.correctAnswers?.find(
+                              (ans) => ans?.id === item.id
+                            ) && (
+                              <Input
+                                type="number"
+                                value={
+                                  box.correctAnswers?.find(
+                                    (ans) => ans?.id === item.id
+                                  )?.count || 1
                                 }
-                              } }
-                              placeholder="Count (optional)"
-                              className="w-24" />)}
+                                onChange={(e) => {
+                                  const count = Number.parseInt(e.target.value);
+                                  const currentAnswers =
+                                    box.correctAnswers || [];
+                                  const existingAnswer = currentAnswers.find(
+                                    (ans) => ans?.id === item.id
+                                  );
+                                  if (existingAnswer) {
+                                    if (count > 0) {
+                                      updateBox(box.id, {
+                                        correctAnswers: currentAnswers.map(
+                                          (ans) =>
+                                            ans?.id === item.id
+                                              ? { ...ans, count }
+                                              : ans
+                                        ),
+                                      });
+                                    } else {
+                                      updateBox(box.id, {
+                                        correctAnswers: currentAnswers.filter(
+                                          (ans) => ans?.id !== item.id
+                                        ),
+                                      });
+                                    }
+                                  }
+                                }}
+                                placeholder="Count (optional)"
+                                className="w-24"
+                              />
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                     {(box.correctAnswers || []).length === 0 && (
-                      <p className="text-xs text-amber-600">⚠️ No correct answers selected for this box</p>
+                      <p className="text-xs text-amber-600">
+                        ⚠️ No correct answers selected for this box
+                      </p>
                     )}
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => removeBox(box.id)} className="w-full">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeBox(box.id)}
+                    className="w-full"
+                  >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Remove Box
                   </Button>
                 </div>
               </Card>
             ))}
+
+            <div>
+              <input
+                type="checkbox"
+                id="allow-duplicate"
+                className="rounded"
+                checked={localContent.displayDuplicateItems}
+                onChange={(e) => {
+                  setLocalContent((prev) => ({
+                    ...prev,
+                    displayDuplicateItems: e.target.checked,
+                  }));
+                }}
+              />
+              <Label
+                htmlFor="allow-duplicate"
+                className="text-sm cursor-pointer m-3"
+              >
+                Allow Duplicate item to display
+              </Label>
+            </div>
           </div>
         </div>
       )}
@@ -491,8 +707,9 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
           </div>
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Sequence Instructions:</strong> Students will drag items to arrange them in the correct order. Set
-              the correct position number for each item (1, 2, 3, etc.).
+              <strong>Sequence Instructions:</strong> Students will drag items
+              to arrange them in the correct order. Set the correct position
+              number for each item (1, 2, 3, etc.).
             </p>
           </div>
         </div>
@@ -515,7 +732,12 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
                 {renderOptionEditor(item)}
 
                 {localContent.dragDropType === "categorize" && (
-                  <Select value={item.category} onValueChange={(value) => updateItem(item.id, { category: value })}>
+                  <Select
+                    value={item.category}
+                    onValueChange={(value) =>
+                      updateItem(item.id, { category: value })
+                    }
+                  >
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -523,7 +745,9 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
                       {localContent.categories?.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded ${category.color}`}></div>
+                            <div
+                              className={`w-3 h-3 rounded ${category.color}`}
+                            ></div>
                             {category.name}
                           </div>
                         </SelectItem>
@@ -536,13 +760,21 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
                   <Input
                     type="number"
                     value={item.correctPosition}
-                    onChange={(e) => updateItem(item.id, { correctPosition: Number.parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      updateItem(item.id, {
+                        correctPosition: Number.parseInt(e.target.value),
+                      })
+                    }
                     placeholder="Position"
                     className="w-24"
                   />
                 )}
 
-                <Button variant="ghost" size="sm" onClick={() => removeItem(item.id)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeItem(item.id)}
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -551,5 +783,5 @@ export function DragDropBuilder({ content, onChange }: DragDropBuilderProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
